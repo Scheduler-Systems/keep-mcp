@@ -10,21 +10,73 @@ from .keep_api import get_client, serialize_note, can_modify_note
 mcp = FastMCP("keep")
 
 @mcp.tool()
-def find(query="") -> str:
+def find(query: str = "", include_archived: bool = False) -> str:
     """
     Find notes based on a search query.
-    
+
     Args:
         query (str, optional): A string to match against the title and text
-        
+        include_archived (bool, optional): Include archived notes. Defaults to False.
+
     Returns:
         str: JSON string containing the matching notes with their id, title, text, pinned status, color and labels
     """
     keep = get_client()
-    notes = keep.find(query=query, archived=False, trashed=False)
-    
+    keep.sync()  # Ensure we have latest notes
+
+    if query:
+        # Search with query
+        notes = keep.find(query=query, archived=include_archived, trashed=False)
+    else:
+        # Return all notes
+        if include_archived:
+            notes = [n for n in keep.all() if not n.trashed]
+        else:
+            notes = [n for n in keep.all() if not n.archived and not n.trashed]
+
     notes_data = [serialize_note(note) for note in notes]
     return json.dumps(notes_data)
+
+@mcp.tool()
+def list_labels() -> str:
+    """
+    List all labels in Google Keep.
+
+    Returns:
+        str: JSON string containing all labels with their id and name
+    """
+    keep = get_client()
+    keep.sync()
+    labels = keep.labels()
+    labels_data = [{'id': label.id, 'name': label.name} for label in labels]
+    return json.dumps(labels_data)
+
+
+@mcp.tool()
+def find_by_label(label_name: str, include_archived: bool = True) -> str:
+    """
+    Find all notes with a specific label.
+
+    Args:
+        label_name (str): The name of the label to filter by
+        include_archived (bool, optional): Include archived notes. Defaults to True.
+
+    Returns:
+        str: JSON string containing notes with the specified label
+    """
+    keep = get_client()
+    keep.sync()
+    label = keep.findLabel(label_name)
+    if not label:
+        return json.dumps([])
+
+    if include_archived:
+        notes = [n for n in keep.all() if not n.trashed and label in n.labels.all()]
+    else:
+        notes = [n for n in keep.all() if not n.archived and not n.trashed and label in n.labels.all()]
+    notes_data = [serialize_note(note) for note in notes]
+    return json.dumps(notes_data)
+
 
 @mcp.tool()
 def create_note(title: str = None, text: str = None) -> str:
