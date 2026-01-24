@@ -1,0 +1,13 @@
+# Enforce Merge Direction
+# Prevents backwards merges (staging → dev, main → staging)
+# Enforced flow: feature branches → dev → staging → main
+
+name: Enforce Merge Direction
+
+on:
+  pull_request:
+    types: [opened, reopened]
+
+jobs:
+  check:
+    uses: Scheduler-Systems/infra/.github/workflows/enforce-merge-direction.yml@main
