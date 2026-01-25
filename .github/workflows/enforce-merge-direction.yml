@@ -1,0 +1,15 @@
+name: Enforce Merge Direction
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches: [main]
+
+jobs:
+  enforce:
+    uses: Scheduler-Systems/infra/.github/workflows/enforce-merge-direction.yml@main
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
